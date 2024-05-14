@@ -883,8 +883,9 @@ for waypoint in holding_pts_app:
         lat=[lat[0]],
         mode='markers',
         marker=dict(size=10, color='yellow'),
-        name=waypoint,
-        text=[f'Waypoint: {waypoint}<br>Coordinates: {lat[0]}, {lon[0]}'],
+        # name=waypoint,
+        hovertemplate='%{hovertext}<extra></extra>',
+        hovertext=[f'Holding Point (APP)<br>Waypoint: {waypoint}<br>Coordinates: {lat[0]}, {lon[0]}'],
         showlegend= False
     ))
 
@@ -897,8 +898,9 @@ for waypoint in holding_pts_acc:
         lat=[lat[0]],
         mode='markers',
         marker=dict(size=10, color='yellow'),
-        name=waypoint,
-        text=[f'Waypoint: {waypoint}<br>Coordinates: {lat[0]}, {lon[0]}'],
+        # name=waypoint,
+        hovertemplate='%{hovertext}<extra></extra>',
+        hovertext=[f'Holding Point (ACC)<br>Waypoint: {waypoint}<br>Coordinates: {lat[0]}, {lon[0]}'],
         showlegend=False
     ))
 
