@@ -1,8 +1,11 @@
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.io as py
+import geopy.distance
 
 from shapely.geometry import LineString, mapping
+
+WSSS_coordinates = ('012133N', '1035922E')
 
 SG_FIR_coordinates = [
     ('082500N', '1163000E'), 
@@ -360,6 +363,7 @@ STAR_SID_waypoints = {
     'KEXAS': ('011019N', '1044818E'),
     'KILOT': ('030217N', '1044023E'),
     'KIRDA': ('000009N', '1045934E'),
+    'LAMA' : ('013150N', '1035850E'), #Added from ENR 3.6 holding list
     'LAVAX': ('010950N', '1042714E'),
     'LEDOX': ('011642N', '1035651E'),
     'LELIB': ('012729N', '1032450E'),
@@ -397,6 +401,7 @@ STAR_SID_waypoints = {
     'TAROS': ('004200N', '1021612E'),
     'TEBUN': ('011455N', '1031557E'),
     'TOMAN': ('012147N', '1054717E'),
+    'TUSPI': ('003301N', '1040959E'), #Added from ENR 3.6 holding list
     'UGEBO': ('003813N', '1052432E'),
     'UKIBO': ('011758N', '1035924E'),
     'UPTEL': ('005925N', '1040730E'),
@@ -502,6 +507,9 @@ SIDs = {
     'VOVOS1D': ['UKIBO', 'VIGUD', 'SAMKO','BOKIP','ATLEX','VOVOS'],
     'VOVOS1F': ['LEDOX','LETGO', 'SAMKO','BOKIP','ATLEX','VOVOS'],
 }
+
+holding_pts_app = ['BOBAG', 'HOSBA', 'KEXAS','LAMA', 'NYLON','REMES','SAMKO','SINJON','TUSPI','VAMPO']
+holding_pts_acc = ['ELALO','KARTO','KILOT','MABAL','REPOV','UGEBO']                   
 
 def parse_coordinates(coordinates):
     latitudes = []
@@ -839,6 +847,63 @@ for SID, waypoints in SIDs_F.items():
     ))
 
 
+center = (parse_coordinates([WSSS_coordinates])[0][0], parse_coordinates([WSSS_coordinates])[1][0])
+# Generate points on the circle
+circle_lats = []
+circle_lons = []
+for bearing in range(0, 360):
+    point = geopy.distance.great_circle(nautical=40).destination(center, bearing)
+    circle_lats.append(point.latitude)
+    circle_lons.append(point.longitude)
+
+# Add the circle to the plot
+fig.add_trace(go.Scattermapbox(
+    lon=circle_lons + [circle_lons[0]],
+    lat=circle_lats + [circle_lats[0]],
+    mode='lines',
+    line=dict(width=2, color='red'),
+    name='40NM Circle',
+))
+
+# Add dummy trace for legend
+fig.add_trace(go.Scattermapbox(
+    lon=[None],
+    lat=[None],
+    mode='markers',
+    line=dict(width=2, color='yellow'),
+    name='Holding Points',
+))
+
+# Add waypoints for holding_pts_app
+for waypoint in holding_pts_app:
+    coord = STAR_SID_waypoints[waypoint]
+    lat, lon  = parse_coordinates([coord])
+    fig.add_trace(go.Scattermapbox(
+        lon=[lon[0]],
+        lat=[lat[0]],
+        mode='markers',
+        marker=dict(size=10, color='yellow'),
+        name=waypoint,
+        text=[f'Waypoint: {waypoint}<br>Coordinates: {lat[0]}, {lon[0]}'],
+        showlegend= False
+    ))
+
+# Add waypoints for holding_pts_acc
+for waypoint in holding_pts_acc:
+    coord = STAR_SID_waypoints[waypoint]
+    lat, lon  = parse_coordinates([coord])
+    fig.add_trace(go.Scattermapbox(
+        lon=[lon[0]],
+        lat=[lat[0]],
+        mode='markers',
+        marker=dict(size=10, color='yellow'),
+        name=waypoint,
+        text=[f'Waypoint: {waypoint}<br>Coordinates: {lat[0]}, {lon[0]}'],
+        showlegend=False
+    ))
+
+
+
 
 # Combine waypoint and FIR coordinates
 all_lats = SG_FIR_latitudes
@@ -872,22 +937,22 @@ fig.update_layout(
         direction="right",
         buttons=list([
             dict(
-                args=[{"visible": [True] + [True]+ [True]*4 + [True] + [True]*len(STARs_A) + [True]*len(STARs_B)+ [True]+ [True] *len(SIDs)}],
+                args=[{"visible": [True] + [True]+ [True]*4 + [True] + [True]*len(STARs_A) + [True]*len(STARs_B)+ [True]+ [True] *len(SIDs)+ [True] + [True]+ [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label="Show All",
                 method="update"
             ),
             dict(
-                args=[{"visible": [True] + [True]+ [False]*4 + [False]+ [False]*len(STARs)+ [False]+ [False]* len(SIDs)}],
+                args=[{"visible": [True] + [True]+ [False]*4 + [False]+ [False]*len(STARs)+ [False]+ [False]* len(SIDs)+ [False]+ [True] + [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label="Show Waypoints Only",
                 method="update"
             ),
             dict(
-                args=[{"visible": [False] + [False]+ [True]*4 + [False]+ [False]*len(STARs)+ [False]+ [False] *len(SIDs) }],
+                args=[{"visible": [False] + [False]+ [True]*4 + [False]+ [False]*len(STARs)+ [False]+ [False] *len(SIDs)+ [True]+ [False] + [False]*len(holding_pts_app) + [False]*len(holding_pts_acc)}],
                 label="Show Singapore FIR Only",
                 method="update"
             ),
             dict(
-                args=[{"visible": [False] + [False]+ [False]*4 + [True]+ [True]*len(STARs)+ [True]+ [True]* len(SIDs)}],
+                args=[{"visible": [False] + [False]+ [False]*4 + [True]+ [True]*len(STARs)+ [True]+ [True]* len(SIDs)+ [True]+ [True] + [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label="Show STARs and SIDs only",
                 method="update"
             ),
@@ -904,17 +969,17 @@ fig.update_layout(
         direction="right",
         buttons=list([
             dict(
-                args = [{"visible": [False] + [False]+ [False]*4 + [True]+ [True]*len(STARs_A) + [True]*len(STARs_B)+ [False]+ [False] *len(SIDs)}],
+                args = [{"visible": [False] + [False]+ [False]*4 + [True]+ [True]*len(STARs_A) + [True]*len(STARs_B)+ [False]+ [False] *len(SIDs)+ [True]+ [True] + [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label = "Show STARs Only",
                 method = "update"
             ),
             dict(
-                args = [{"visible": [False] + [False]+ [False]*4 + [True]+ [True]*len(STARs_A) + [False]*len(STARs_B)+ [False]+ [False] *len(SIDs)}],
+                args = [{"visible": [False] + [False]+ [False]*4 + [True]+ [True]*len(STARs_A) + [False]*len(STARs_B)+ [False]+ [False] *len(SIDs)+ [True]+ [True] + [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label = "Show STARs for Runway 02L/C/R Only",
                 method = "update"
             ),
             dict(
-                args = [{"visible": [False] + [False]+ [False]*4 + [True]+ [False]*len(STARs_A) + [True]*len(STARs_B)+ [False]+ [False] *len(SIDs)}],
+                args = [{"visible": [False] + [False]+ [False]*4 + [True]+ [False]*len(STARs_A) + [True]*len(STARs_B)+ [False]+ [False] *len(SIDs)+ [True]+ [True] + [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label = "Show STARs for Runway 20L/C/R Only",
                 method = "update"
             )
@@ -931,17 +996,17 @@ fig.update_layout(
         direction="right",
         buttons=list([
             dict(
-                args = [{"visible": [False] + [False]+ [False]*4 + [False]+ [False]*len(STARs)+ [True] + [True] *len(SIDs)}],
+                args = [{"visible": [False] + [False]+ [False]*4 + [False]+ [False]*len(STARs)+ [True] + [True] *len(SIDs)+ [True]+ [True] + [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label = "Show SIDs Only",
                 method = "update"
             ),
             dict(
-                args = [{"visible": [False] + [False]+ [False]*4 + [False]+ [False]*len(STARs)+ [True]* len(SIDs_A)+ [False]* len(SIDs_B)+[True]* len(SIDs_C)+ [False]* len(SIDs_D)+ [True]* len(SIDs_E)+ [False]* len(SIDs_F)}],
+                args = [{"visible": [False] + [False]+ [False]*4 + [False]+ [False]*len(STARs)+ [True]+ [True]* len(SIDs_A)+ [False]* len(SIDs_B)+[True]* len(SIDs_C)+ [False]* len(SIDs_D)+ [True]* len(SIDs_E)+ [False]* len(SIDs_F) + [True]+ [True] + [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label = "Show SIDs for Runway 02L/C/R Only",
                 method = "update"
             ),
             dict(
-                args = [{"visible": [False] + [False]+ [False]*4 + [False]+ [False]*len(STARs)+ [True]+ [False]* len(SIDs_A)+ [True]* len(SIDs_B)+[False]* len(SIDs_C)+ [True]* len(SIDs_D)+ [False]*len(SIDs_E)+ [True]* len(SIDs_F)}],
+                args = [{"visible": [False] + [False]+ [False]*4 + [False]+ [False]*len(STARs)+ [True]+ [False]* len(SIDs_A)+ [True]* len(SIDs_B)+[False]* len(SIDs_C)+ [True]* len(SIDs_D)+ [False]*len(SIDs_E)+ [True]* len(SIDs_F)+ [True]+ [True] + [True]*len(holding_pts_app) + [True]*len(holding_pts_acc)}],
                 label = "Show SIDs for Runway 20L/C/R Only",
                 method = "update"
             )
